@@ -8,7 +8,7 @@ RUN --mount=type=cache,id=openclaw-cleanup-smoke-apt-cache,target=/var/cache/apt
   && apt-get install -y --no-install-recommends \
     bash \
     ca-certificates \
-    git \
+    git
 
 WORKDIR /repo
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
