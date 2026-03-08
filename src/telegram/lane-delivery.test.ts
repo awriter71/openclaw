@@ -42,8 +42,8 @@ function createHarness(params?: {
   const deletePreviewMessage = vi.fn().mockResolvedValue(undefined);
   const log = vi.fn();
   const markDelivered = vi.fn();
-  const activePreviewLifecycleByLane = { answer: "transient", reasoning: "transient" } as const;
-  const retainPreviewOnCleanupByLane = { answer: false, reasoning: false } as const;
+  const activePreviewLifecycleByLane = { answer: "transient", reasoning: "transient" };
+  const retainPreviewOnCleanupByLane = { answer: false, reasoning: false };
   const archivedAnswerPreviews: Array<{
     messageId: number;
     textSnapshot: string;
@@ -53,8 +53,8 @@ function createHarness(params?: {
   const deliverLaneText = createLaneTextDeliverer({
     lanes,
     archivedAnswerPreviews,
-    activePreviewLifecycleByLane: { ...activePreviewLifecycleByLane },
-    retainPreviewOnCleanupByLane: { ...retainPreviewOnCleanupByLane },
+    activePreviewLifecycleByLane,
+    retainPreviewOnCleanupByLane,
     draftMaxChars: params?.draftMaxChars ?? 4_096,
     applyTextToPayload: (payload: ReplyPayload, text: string) => ({ ...payload, text }),
     sendPayload,
@@ -81,6 +81,8 @@ function createHarness(params?: {
     log,
     markDelivered,
     archivedAnswerPreviews,
+    activePreviewLifecycleByLane,
+    retainPreviewOnCleanupByLane,
   };
 }
 
@@ -471,6 +473,29 @@ describe("createLaneTextDeliverer", () => {
     );
     expect(result).toBe("sent");
     expect(harness.deletePreviewMessage).toHaveBeenCalledWith(5555);
+  });
+
+  it("clears active preview state after successful fallback orphan cleanup", async () => {
+    const harness = createHarness({
+      answerMessageId: 5555,
+      answerHasStreamedMessage: true,
+      answerLastPartialText: "Partial streaming...",
+    });
+
+    const result = await harness.deliverLaneText({
+      laneName: "answer",
+      text: "Final with media",
+      payload: { text: "Final with media", mediaUrl: "file:///tmp/example.png" },
+      infoKind: "final",
+    });
+
+    expect(result).toBe("sent");
+    expect(harness.deletePreviewMessage).toHaveBeenCalledWith(5555);
+    expect(harness.answer.stream?.forceNewMessage).toHaveBeenCalledTimes(1);
+    expect(harness.lanes.answer.hasStreamedMessage).toBe(false);
+    expect(harness.lanes.answer.lastPartialText).toBe("");
+    expect(harness.activePreviewLifecycleByLane.answer).toBe("transient");
+    expect(harness.retainPreviewOnCleanupByLane.answer).toBe(false);
   });
 
   it("keeps the active preview when an archived final edit target is missing", async () => {

@@ -171,6 +171,13 @@ export function createLaneTextDeliverer(params: CreateLaneTextDelivererParams) {
     params.activePreviewLifecycleByLane[laneName] = "complete";
     params.retainPreviewOnCleanupByLane[laneName] = true;
   };
+  const clearActivePreviewState = (laneName: LaneName, lane: DraftLaneState) => {
+    lane.stream?.forceNewMessage?.();
+    lane.lastPartialText = "";
+    lane.hasStreamedMessage = false;
+    params.activePreviewLifecycleByLane[laneName] = "transient";
+    params.retainPreviewOnCleanupByLane[laneName] = false;
+  };
   const isDraftPreviewLane = (lane: DraftLaneState) => lane.stream?.previewMode?.() === "draft";
   const canMaterializeDraftFinal = (
     lane: DraftLaneState,
@@ -529,8 +536,20 @@ export function createLaneTextDeliverer(params: CreateLaneTextDelivererParams) {
           `telegram: preview final too long for edit (${text.length} > ${params.draftMaxChars}); falling back to standard send`,
         );
       }
+      const previewMessageIdBeforeFallback = lane.stream?.messageId();
       await params.stopDraftLane(lane);
+      const previewMessageIdAfterStop = previewMessageIdBeforeFallback ?? lane.stream?.messageId();
       const delivered = await params.sendPayload(params.applyTextToPayload(payload, text));
+      if (delivered && typeof previewMessageIdAfterStop === "number") {
+        try {
+          await params.deletePreviewMessage(previewMessageIdAfterStop);
+          clearActivePreviewState(laneName, lane);
+        } catch (err) {
+          params.log(
+            `telegram: ${laneName} fallback send orphaned preview cleanup failed (${previewMessageIdAfterStop}): ${String(err)}`,
+          );
+        }
+      }
       return delivered ? "sent" : "skipped";
     }
 
