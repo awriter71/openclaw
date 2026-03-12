@@ -16,12 +16,31 @@ import {
   setMatrixThreadBindingMaxAgeBySessionKey,
 } from "./thread-bindings.js";
 
+const pluginSdkActual = vi.hoisted(() => ({
+  writeJsonFileAtomically: null as null | ((filePath: string, value: unknown) => Promise<void>),
+}));
+
 const sendMessageMatrixMock = vi.hoisted(() =>
   vi.fn(async (_to: string, _message: string, opts?: { threadId?: string }) => ({
     messageId: opts?.threadId ? "$reply" : "$root",
     roomId: "!room:example",
   })),
 );
+const writeJsonFileAtomicallyMock = vi.hoisted(() =>
+  vi.fn<(filePath: string, value: unknown) => Promise<void>>(),
+);
+
+vi.mock("openclaw/plugin-sdk/matrix", async () => {
+  const actual = await vi.importActual<typeof import("openclaw/plugin-sdk/matrix")>(
+    "openclaw/plugin-sdk/matrix",
+  );
+  pluginSdkActual.writeJsonFileAtomically = actual.writeJsonFileAtomically;
+  return {
+    ...actual,
+    writeJsonFileAtomically: (filePath: string, value: unknown) =>
+      writeJsonFileAtomicallyMock(filePath, value),
+  };
+});
 
 vi.mock("./send.js", async () => {
   const actual = await vi.importActual<typeof import("./send.js")>("./send.js");
@@ -63,6 +82,10 @@ describe("matrix thread bindings", () => {
     __testing.resetSessionBindingAdaptersForTests();
     resetMatrixThreadBindingsForTests();
     sendMessageMatrixMock.mockClear();
+    writeJsonFileAtomicallyMock.mockReset();
+    writeJsonFileAtomicallyMock.mockImplementation(async (filePath: string, value: unknown) => {
+      await pluginSdkActual.writeJsonFileAtomically?.(filePath, value);
+    });
     setMatrixRuntime({
       state: {
         resolveStateDir: () => stateDir,
@@ -179,6 +202,109 @@ describe("matrix thread bindings", () => {
       sendMessageMatrixMock.mockClear();
       await vi.advanceTimersByTimeAsync(61_000);
       await Promise.resolve();
+
+      expect(
+        getSessionBindingService().resolveByConversation({
+          channel: "matrix",
+          accountId: "ops",
+          conversationId: "$thread",
+          parentConversationId: "!room:example",
+        }),
+      ).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("persists a batch of expired bindings once per sweep", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-08T12:00:00.000Z"));
+    try {
+      await createMatrixThreadBindingManager({
+        accountId: "ops",
+        auth,
+        client: {} as never,
+        idleTimeoutMs: 1_000,
+        maxAgeMs: 0,
+      });
+
+      await getSessionBindingService().bind({
+        targetSessionKey: "agent:ops:subagent:first",
+        targetKind: "subagent",
+        conversation: {
+          channel: "matrix",
+          accountId: "ops",
+          conversationId: "$thread-1",
+          parentConversationId: "!room:example",
+        },
+        placement: "current",
+      });
+      await getSessionBindingService().bind({
+        targetSessionKey: "agent:ops:subagent:second",
+        targetKind: "subagent",
+        conversation: {
+          channel: "matrix",
+          accountId: "ops",
+          conversationId: "$thread-2",
+          parentConversationId: "!room:example",
+        },
+        placement: "current",
+      });
+
+      writeJsonFileAtomicallyMock.mockClear();
+      await vi.advanceTimersByTimeAsync(61_000);
+
+      await vi.waitFor(() => {
+        expect(writeJsonFileAtomicallyMock).toHaveBeenCalledTimes(1);
+      });
+
+      await vi.waitFor(async () => {
+        const persistedRaw = await fs.readFile(resolveBindingsFilePath(), "utf-8");
+        expect(JSON.parse(persistedRaw)).toMatchObject({
+          version: 1,
+          bindings: [],
+        });
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("logs and survives sweeper persistence failures", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-08T12:00:00.000Z"));
+    const logVerboseMessage = vi.fn();
+    try {
+      await createMatrixThreadBindingManager({
+        accountId: "ops",
+        auth,
+        client: {} as never,
+        idleTimeoutMs: 1_000,
+        maxAgeMs: 0,
+        logVerboseMessage,
+      });
+
+      await getSessionBindingService().bind({
+        targetSessionKey: "agent:ops:subagent:child",
+        targetKind: "subagent",
+        conversation: {
+          channel: "matrix",
+          accountId: "ops",
+          conversationId: "$thread",
+          parentConversationId: "!room:example",
+        },
+        placement: "current",
+      });
+
+      writeJsonFileAtomicallyMock.mockClear();
+      writeJsonFileAtomicallyMock.mockRejectedValueOnce(new Error("disk full"));
+      await vi.advanceTimersByTimeAsync(61_000);
+
+      await vi.waitFor(() => {
+        expect(logVerboseMessage).toHaveBeenCalledWith(
+          expect.stringContaining("failed auto-unbinding expired bindings"),
+        );
+      });
 
       expect(
         getSessionBindingService().resolveByConversation({

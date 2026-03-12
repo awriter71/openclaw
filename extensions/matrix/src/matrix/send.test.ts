@@ -8,6 +8,7 @@ const loadWebMediaMock = vi.fn().mockResolvedValue({
   contentType: "image/png",
   kind: "image",
 });
+const loadConfigMock = vi.fn(() => ({}));
 const getImageMetadataMock = vi.fn().mockResolvedValue(null);
 const resizeToJpegMock = vi.fn();
 const resolveTextChunkLimitMock = vi.fn<
@@ -16,7 +17,7 @@ const resolveTextChunkLimitMock = vi.fn<
 
 const runtimeStub = {
   config: {
-    loadConfig: () => ({}),
+    loadConfig: () => loadConfigMock(),
   },
   media: {
     loadWebMedia: (...args: unknown[]) => loadWebMediaMock(...args),
@@ -72,6 +73,7 @@ describe("sendMessageMatrix media", () => {
       contentType: "image/png",
       kind: "image",
     });
+    loadConfigMock.mockReset().mockReturnValue({});
     getImageMetadataMock.mockReset().mockResolvedValue(null);
     resizeToJpegMock.mockReset();
     resolveTextChunkLimitMock.mockReset().mockReturnValue(4000);
@@ -203,6 +205,36 @@ describe("sendMessageMatrix media", () => {
       size: Buffer.from("thumb").byteLength,
     });
   });
+
+  it("uses explicit cfg for media sends instead of runtime loadConfig fallbacks", async () => {
+    const { client } = makeClient();
+    const explicitCfg = {
+      channels: {
+        matrix: {
+          accounts: {
+            ops: {
+              mediaMaxMb: 1,
+            },
+          },
+        },
+      },
+    };
+
+    loadConfigMock.mockImplementation(() => {
+      throw new Error("sendMessageMatrix should not reload runtime config when cfg is provided");
+    });
+
+    await sendMessageMatrix("room:!room:example", "caption", {
+      client,
+      cfg: explicitCfg,
+      accountId: "ops",
+      mediaUrl: "file:///tmp/photo.png",
+    });
+
+    expect(loadConfigMock).not.toHaveBeenCalled();
+    expect(loadWebMediaMock).toHaveBeenCalledWith("file:///tmp/photo.png", 1024 * 1024);
+    expect(resolveTextChunkLimitMock).toHaveBeenCalledWith(explicitCfg, "matrix", "ops");
+  });
 });
 
 describe("sendMessageMatrix threads", () => {
@@ -215,6 +247,7 @@ describe("sendMessageMatrix threads", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    loadConfigMock.mockReset().mockReturnValue({});
     setMatrixRuntime(runtimeStub);
   });
 
@@ -261,6 +294,7 @@ describe("voteMatrixPoll", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    loadConfigMock.mockReset().mockReturnValue({});
     setMatrixRuntime(runtimeStub);
   });
 
@@ -404,6 +438,7 @@ describe("sendTypingMatrix", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    loadConfigMock.mockReset().mockReturnValue({});
     setMatrixRuntime(runtimeStub);
   });
 

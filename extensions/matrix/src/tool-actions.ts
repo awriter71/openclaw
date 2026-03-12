@@ -133,7 +133,10 @@ export async function handleMatrixAction(
   const action = readStringParam(params, "action", { required: true });
   const accountId = readStringParam(params, "accountId") ?? undefined;
   const isActionEnabled = createActionGate(resolveMatrixAccountConfig({ cfg, accountId }).actions);
-  const clientOpts = accountId ? { accountId } : {};
+  const clientOpts = {
+    cfg,
+    ...(accountId ? { accountId } : {}),
+  };
 
   if (reactionActions.has(action)) {
     if (!isActionEnabled("reactions")) {
@@ -147,17 +150,17 @@ export async function handleMatrixAction(
       });
       if (remove || isEmpty) {
         const result = await removeMatrixReactions(roomId, messageId, {
-          accountId,
+          ...clientOpts,
           emoji: remove ? emoji : undefined,
         });
         return jsonResult({ ok: true, removed: result.removed });
       }
-      await reactMatrixMessage(roomId, messageId, emoji, { accountId });
+      await reactMatrixMessage(roomId, messageId, emoji, clientOpts);
       return jsonResult({ ok: true, added: emoji });
     }
     const limit = readNumberParam(params, "limit", { integer: true });
     const reactions = await listMatrixReactions(roomId, messageId, {
-      accountId,
+      ...clientOpts,
       limit: limit ?? undefined,
     });
     return jsonResult({ ok: true, reactions });
@@ -177,7 +180,7 @@ export async function handleMatrixAction(
       ...(optionIndex !== undefined ? [optionIndex] : []),
     ];
     const result = await voteMatrixPoll(roomId, pollId, {
-      accountId,
+      ...clientOpts,
       optionIds,
       optionIndexes,
     });
@@ -270,6 +273,7 @@ export async function handleMatrixAction(
       readStringParam(params, "path") ??
       readStringParam(params, "filePath");
     const result = await applyMatrixProfileUpdate({
+      cfg,
       account: accountId,
       displayName: readStringParam(params, "displayName") ?? readStringParam(params, "name"),
       avatarUrl: readStringParam(params, "avatarUrl"),
@@ -312,12 +316,12 @@ export async function handleMatrixAction(
 
     if (action === "encryptionStatus") {
       const includeRecoveryKey = params.includeRecoveryKey === true;
-      const status = await getMatrixEncryptionStatus({ includeRecoveryKey, accountId });
+      const status = await getMatrixEncryptionStatus({ includeRecoveryKey, ...clientOpts });
       return jsonResult({ ok: true, status });
     }
     if (action === "verificationStatus") {
       const includeRecoveryKey = params.includeRecoveryKey === true;
-      const status = await getMatrixVerificationStatus({ includeRecoveryKey, accountId });
+      const status = await getMatrixVerificationStatus({ includeRecoveryKey, ...clientOpts });
       return jsonResult({ ok: true, status });
     }
     if (action === "verificationBootstrap") {
@@ -327,7 +331,7 @@ export async function handleMatrixAction(
       const result = await bootstrapMatrixVerification({
         recoveryKey: recoveryKey ?? undefined,
         forceResetCrossSigning: params.forceResetCrossSigning === true,
-        accountId,
+        ...clientOpts,
       });
       return jsonResult({ ok: result.success, result });
     }
@@ -337,12 +341,12 @@ export async function handleMatrixAction(
         readStringParam(params, "key", { trim: false });
       const result = await verifyMatrixRecoveryKey(
         readStringParam({ recoveryKey }, "recoveryKey", { required: true, trim: false }),
-        { accountId },
+        clientOpts,
       );
       return jsonResult({ ok: result.success, result });
     }
     if (action === "verificationBackupStatus") {
-      const status = await getMatrixRoomKeyBackupStatus({ accountId });
+      const status = await getMatrixRoomKeyBackupStatus(clientOpts);
       return jsonResult({ ok: true, status });
     }
     if (action === "verificationBackupRestore") {
@@ -351,12 +355,12 @@ export async function handleMatrixAction(
         readStringParam(params, "key", { trim: false });
       const result = await restoreMatrixRoomKeyBackup({
         recoveryKey: recoveryKey ?? undefined,
-        accountId,
+        ...clientOpts,
       });
       return jsonResult({ ok: result.success, result });
     }
     if (action === "verificationList") {
-      const verifications = await listMatrixVerifications({ accountId });
+      const verifications = await listMatrixVerifications(clientOpts);
       return jsonResult({ ok: true, verifications });
     }
     if (action === "verificationRequest") {
@@ -369,14 +373,14 @@ export async function handleMatrixAction(
         userId: userId ?? undefined,
         deviceId: deviceId ?? undefined,
         roomId: roomId ?? undefined,
-        accountId,
+        ...clientOpts,
       });
       return jsonResult({ ok: true, verification });
     }
     if (action === "verificationAccept") {
       const verification = await acceptMatrixVerification(
         readStringParam({ requestId }, "requestId", { required: true }),
-        { accountId },
+        clientOpts,
       );
       return jsonResult({ ok: true, verification });
     }
@@ -385,7 +389,7 @@ export async function handleMatrixAction(
       const code = readStringParam(params, "code");
       const verification = await cancelMatrixVerification(
         readStringParam({ requestId }, "requestId", { required: true }),
-        { reason: reason ?? undefined, code: code ?? undefined, accountId },
+        { reason: reason ?? undefined, code: code ?? undefined, ...clientOpts },
       );
       return jsonResult({ ok: true, verification });
     }
@@ -399,14 +403,14 @@ export async function handleMatrixAction(
       }
       const verification = await startMatrixVerification(
         readStringParam({ requestId }, "requestId", { required: true }),
-        { method: "sas", accountId },
+        { method: "sas", ...clientOpts },
       );
       return jsonResult({ ok: true, verification });
     }
     if (action === "verificationGenerateQr") {
       const qr = await generateMatrixVerificationQr(
         readStringParam({ requestId }, "requestId", { required: true }),
-        { accountId },
+        clientOpts,
       );
       return jsonResult({ ok: true, ...qr });
     }
@@ -418,35 +422,35 @@ export async function handleMatrixAction(
       const verification = await scanMatrixVerificationQr(
         readStringParam({ requestId }, "requestId", { required: true }),
         readStringParam({ qrDataBase64 }, "qrDataBase64", { required: true }),
-        { accountId },
+        clientOpts,
       );
       return jsonResult({ ok: true, verification });
     }
     if (action === "verificationSas") {
       const sas = await getMatrixVerificationSas(
         readStringParam({ requestId }, "requestId", { required: true }),
-        { accountId },
+        clientOpts,
       );
       return jsonResult({ ok: true, sas });
     }
     if (action === "verificationConfirm") {
       const verification = await confirmMatrixVerificationSas(
         readStringParam({ requestId }, "requestId", { required: true }),
-        { accountId },
+        clientOpts,
       );
       return jsonResult({ ok: true, verification });
     }
     if (action === "verificationMismatch") {
       const verification = await mismatchMatrixVerificationSas(
         readStringParam({ requestId }, "requestId", { required: true }),
-        { accountId },
+        clientOpts,
       );
       return jsonResult({ ok: true, verification });
     }
     if (action === "verificationConfirmQr") {
       const verification = await confirmMatrixVerificationReciprocateQr(
         readStringParam({ requestId }, "requestId", { required: true }),
-        { accountId },
+        clientOpts,
       );
       return jsonResult({ ok: true, verification });
     }

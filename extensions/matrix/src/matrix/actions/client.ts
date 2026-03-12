@@ -21,6 +21,7 @@ export async function resolveActionClient(
 ): Promise<MatrixActionClient> {
   return await resolveRuntimeMatrixClient({
     client: opts.client,
+    cfg: opts.cfg,
     timeoutMs: opts.timeoutMs,
     accountId: opts.accountId,
     onResolved: async (client, context) => {

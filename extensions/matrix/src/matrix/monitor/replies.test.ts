@@ -13,10 +13,13 @@ import { setMatrixRuntime } from "../../runtime.js";
 import { deliverMatrixReplies } from "./replies.js";
 
 describe("deliverMatrixReplies", () => {
+  const cfg = { channels: { matrix: {} } };
   const loadConfigMock = vi.fn(() => ({}));
-  const resolveMarkdownTableModeMock = vi.fn(() => "code");
+  const resolveMarkdownTableModeMock = vi.fn<(params: unknown) => string>(() => "code");
   const convertMarkdownTablesMock = vi.fn((text: string) => text);
-  const resolveChunkModeMock = vi.fn(() => "length");
+  const resolveChunkModeMock = vi.fn<
+    (cfg: unknown, channel: unknown, accountId?: unknown) => string
+  >(() => "length");
   const chunkMarkdownTextWithModeMock = vi.fn((text: string) => [text]);
 
   const runtimeStub = {
@@ -25,9 +28,10 @@ describe("deliverMatrixReplies", () => {
     },
     channel: {
       text: {
-        resolveMarkdownTableMode: () => resolveMarkdownTableModeMock(),
+        resolveMarkdownTableMode: (params: unknown) => resolveMarkdownTableModeMock(params),
         convertMarkdownTables: (text: string) => convertMarkdownTablesMock(text),
-        resolveChunkMode: () => resolveChunkModeMock(),
+        resolveChunkMode: (cfg: unknown, channel: unknown, accountId?: unknown) =>
+          resolveChunkModeMock(cfg, channel, accountId),
         chunkMarkdownTextWithMode: (text: string) => chunkMarkdownTextWithModeMock(text),
       },
     },
@@ -51,6 +55,7 @@ describe("deliverMatrixReplies", () => {
     chunkMarkdownTextWithModeMock.mockImplementation((text: string) => text.split("|"));
 
     await deliverMatrixReplies({
+      cfg,
       replies: [
         { text: "first-a|first-b", replyToId: "reply-1" },
         { text: "second", replyToId: "reply-2" },
@@ -76,6 +81,7 @@ describe("deliverMatrixReplies", () => {
 
   it("keeps replyToId on every reply when replyToMode=all", async () => {
     await deliverMatrixReplies({
+      cfg,
       replies: [
         {
           text: "caption",
@@ -112,6 +118,7 @@ describe("deliverMatrixReplies", () => {
     chunkMarkdownTextWithModeMock.mockImplementation((text: string) => text.split("|"));
 
     await deliverMatrixReplies({
+      cfg,
       replies: [{ text: "hello|thread", replyToId: "reply-thread" }],
       roomId: "room:3",
       client: {} as MatrixClient,
@@ -127,6 +134,46 @@ describe("deliverMatrixReplies", () => {
     );
     expect(sendMessageMatrixMock.mock.calls[1]?.[2]).toEqual(
       expect.objectContaining({ replyToId: undefined, threadId: "thread-77" }),
+    );
+  });
+
+  it("uses supplied cfg for chunking and send delivery without reloading runtime config", async () => {
+    const explicitCfg = {
+      channels: {
+        matrix: {
+          accounts: {
+            ops: {
+              chunkMode: "newline",
+            },
+          },
+        },
+      },
+    };
+    loadConfigMock.mockImplementation(() => {
+      throw new Error("deliverMatrixReplies should not reload runtime config when cfg is provided");
+    });
+
+    await deliverMatrixReplies({
+      cfg: explicitCfg,
+      replies: [{ text: "hello", replyToId: "reply-1" }],
+      roomId: "room:4",
+      client: {} as MatrixClient,
+      runtime: runtimeEnv,
+      textLimit: 4000,
+      replyToMode: "all",
+      accountId: "ops",
+    });
+
+    expect(loadConfigMock).not.toHaveBeenCalled();
+    expect(resolveChunkModeMock).toHaveBeenCalledWith(explicitCfg, "matrix", "ops");
+    expect(sendMessageMatrixMock).toHaveBeenCalledWith(
+      "room:4",
+      "hello",
+      expect.objectContaining({
+        cfg: explicitCfg,
+        accountId: "ops",
+        replyToId: "reply-1",
+      }),
     );
   });
 });

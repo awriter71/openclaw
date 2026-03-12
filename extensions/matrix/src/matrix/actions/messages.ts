@@ -24,6 +24,7 @@ export async function sendMatrixMessage(
   } = {},
 ) {
   return await sendMessageMatrix(to, content, {
+    cfg: opts.cfg,
     mediaUrl: opts.mediaUrl,
     replyToId: opts.replyToId,
     threadId: opts.threadId,

@@ -9,7 +9,7 @@ function requireCrypto(
   opts: MatrixActionClientOpts,
 ): NonNullable<import("../sdk.js").MatrixClient["crypto"]> {
   if (!client.crypto) {
-    const cfg = getMatrixRuntime().config.loadConfig() as CoreConfig;
+    const cfg = opts.cfg ?? (getMatrixRuntime().config.loadConfig() as CoreConfig);
     throw new Error(formatMatrixEncryptionUnavailableError(cfg, opts.accountId));
   }
   return client.crypto;

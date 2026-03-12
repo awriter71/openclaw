@@ -75,4 +75,29 @@ describe("matrix verification actions", () => {
       "Matrix encryption is not available (enable channels.matrix.accounts.ops.encryption=true)",
     );
   });
+
+  it("uses explicit cfg instead of runtime config when crypto is unavailable", async () => {
+    const explicitCfg = {
+      channels: {
+        matrix: {
+          accounts: {
+            ops: {
+              encryption: false,
+            },
+          },
+        },
+      },
+    };
+    loadConfigMock.mockImplementation(() => {
+      throw new Error("verification actions should not reload runtime config when cfg is provided");
+    });
+    withStartedActionClientMock.mockImplementation(async (_opts, run) => {
+      return await run({ crypto: null });
+    });
+
+    await expect(listMatrixVerifications({ cfg: explicitCfg, accountId: "ops" })).rejects.toThrow(
+      "Matrix encryption is not available (enable channels.matrix.accounts.ops.encryption=true)",
+    );
+    expect(loadConfigMock).not.toHaveBeenCalled();
+  });
 });

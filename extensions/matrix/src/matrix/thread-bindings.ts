@@ -248,13 +248,6 @@ async function persistBindingsSnapshot(
   await writeJsonFileAtomically(filePath, toStoredBindingsState(bindings));
 }
 
-async function persistBindings(filePath: string, accountId: string): Promise<void> {
-  await persistBindingsSnapshot(
-    filePath,
-    [...BINDINGS_BY_ACCOUNT_CONVERSATION.values()].filter((entry) => entry.accountId === accountId),
-  );
-}
-
 function setBindingRecord(record: MatrixThreadBindingRecord): void {
   BINDINGS_BY_ACCOUNT_CONVERSATION.set(resolveBindingKey(record), record);
 }
@@ -372,12 +365,20 @@ export async function createMatrixThreadBindingManager(params: {
     setBindingRecord(record);
   }
 
-  const persist = async () => await persistBindings(filePath, params.accountId);
+  let persistQueue: Promise<void> = Promise.resolve();
+  const enqueuePersist = (bindings?: MatrixThreadBindingRecord[]) => {
+    const snapshot = bindings ?? listBindingsForAccount(params.accountId);
+    const next = persistQueue
+      .catch(() => {})
+      .then(async () => {
+        await persistBindingsSnapshot(filePath, snapshot);
+      });
+    persistQueue = next;
+    return next;
+  };
+  const persist = async () => await enqueuePersist();
   const persistSafely = (reason: string, bindings?: MatrixThreadBindingRecord[]) => {
-    void persistBindingsSnapshot(
-      filePath,
-      bindings ?? listBindingsForAccount(params.accountId),
-    ).catch((err) => {
+    void enqueuePersist(bindings).catch((err) => {
       params.logVerboseMessage?.(
         `matrix: failed persisting thread bindings account=${params.accountId} action=${reason}: ${String(err)}`,
       );
@@ -503,17 +504,18 @@ export async function createMatrixThreadBindingManager(params: {
   };
 
   let sweepTimer: NodeJS.Timeout | null = null;
-  const unbindRecords = async (records: MatrixThreadBindingRecord[], reason: string) => {
+  const removeRecords = (records: MatrixThreadBindingRecord[]) => {
     if (records.length === 0) {
       return [];
     }
-    const removed = records
+    return records
       .map((record) => removeBindingRecord(record))
       .filter((record): record is MatrixThreadBindingRecord => Boolean(record));
-    if (removed.length === 0) {
-      return [];
-    }
-    await persist();
+  };
+  const sendFarewellMessages = async (
+    removed: MatrixThreadBindingRecord[],
+    reason: string | ((record: MatrixThreadBindingRecord) => string | undefined),
+  ) => {
     await Promise.all(
       removed.map(async (record) => {
         await sendFarewellMessage({
@@ -522,10 +524,18 @@ export async function createMatrixThreadBindingManager(params: {
           record,
           defaultIdleTimeoutMs: defaults.idleTimeoutMs,
           defaultMaxAgeMs: defaults.maxAgeMs,
-          reason,
+          reason: typeof reason === "function" ? reason(record) : reason,
         });
       }),
     );
+  };
+  const unbindRecords = async (records: MatrixThreadBindingRecord[], reason: string) => {
+    const removed = removeRecords(records);
+    if (removed.length === 0) {
+      return [];
+    }
+    await persist();
+    await sendFarewellMessages(removed, reason);
     return removed.map((record) => toSessionBindingRecord(record, defaults));
   };
 
@@ -664,14 +674,29 @@ export async function createMatrixThreadBindingManager(params: {
       if (expired.length === 0) {
         return;
       }
-      void Promise.all(
-        expired.map(async ({ record, lifecycle }) => {
-          params.logVerboseMessage?.(
-            `matrix: auto-unbinding ${record.conversationId} due to ${lifecycle.reason}`,
-          );
-          await unbindRecords([record], lifecycle.reason);
-        }),
+      const reasonByBindingKey = new Map(
+        expired.map(({ record, lifecycle }) => [resolveBindingKey(record), lifecycle.reason]),
       );
+      void (async () => {
+        const removed = removeRecords(expired.map(({ record }) => record));
+        if (removed.length === 0) {
+          return;
+        }
+        for (const record of removed) {
+          const reason = reasonByBindingKey.get(resolveBindingKey(record));
+          params.logVerboseMessage?.(
+            `matrix: auto-unbinding ${record.conversationId} due to ${reason}`,
+          );
+        }
+        await persist();
+        await sendFarewellMessages(removed, (record) =>
+          reasonByBindingKey.get(resolveBindingKey(record)),
+        );
+      })().catch((err) => {
+        params.logVerboseMessage?.(
+          `matrix: failed auto-unbinding expired bindings account=${params.accountId}: ${String(err)}`,
+        );
+      });
     }, THREAD_BINDINGS_SWEEP_INTERVAL_MS);
     sweepTimer.unref?.();
   }

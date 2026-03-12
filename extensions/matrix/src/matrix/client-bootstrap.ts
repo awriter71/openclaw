@@ -27,6 +27,7 @@ export function ensureMatrixNodeRuntime() {
 
 export async function resolveRuntimeMatrixClient(opts: {
   client?: MatrixClient;
+  cfg?: CoreConfig;
   timeoutMs?: number;
   accountId?: string | null;
   onResolved?: MatrixResolvedClientHook;
@@ -37,7 +38,7 @@ export async function resolveRuntimeMatrixClient(opts: {
     return { client: opts.client, stopOnDone: false };
   }
 
-  const cfg = getMatrixRuntime().config.loadConfig() as CoreConfig;
+  const cfg = opts.cfg ?? (getMatrixRuntime().config.loadConfig() as CoreConfig);
   const authContext = resolveMatrixAuthContext({
     cfg,
     accountId: opts.accountId,

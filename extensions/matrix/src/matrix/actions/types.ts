@@ -1,3 +1,4 @@
+import type { CoreConfig } from "../../types.js";
 import {
   MATRIX_ANNOTATION_RELATION_TYPE,
   MATRIX_REACTION_EVENT_TYPE,
@@ -46,6 +47,7 @@ export type RoomTopicEventContent = {
 
 export type MatrixActionClientOpts = {
   client?: MatrixClient;
+  cfg?: CoreConfig;
   timeoutMs?: number;
   accountId?: string | null;
   readiness?: "none" | "prepared" | "started";

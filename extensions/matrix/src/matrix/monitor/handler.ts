@@ -336,7 +336,11 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
                     created
                       ? pairingReply
                       : `${pairingReply}\n\nPairing request is still pending approval. Reusing existing code.`,
-                    { client },
+                    {
+                      client,
+                      cfg,
+                      accountId,
+                    },
                   );
                 } catch (err) {
                   logVerboseMessage(`matrix pairing reply failed for ${senderId}: ${String(err)}`);
@@ -692,6 +696,7 @@ export function createMatrixRoomMessageHandler(params: MatrixMonitorHandlerParam
           humanDelay: core.channel.reply.resolveHumanDelayConfig(cfg, route.agentId),
           deliver: async (payload: ReplyPayload) => {
             await deliverMatrixReplies({
+              cfg,
               replies: [payload],
               roomId,
               client,

@@ -9,9 +9,12 @@ import type { MatrixClient } from "../sdk.js";
 
 const getCore = () => getMatrixRuntime();
 
-export function resolveMediaMaxBytes(accountId?: string | null): number | undefined {
-  const cfg = getCore().config.loadConfig() as CoreConfig;
-  const matrixCfg = resolveMatrixAccountConfig({ cfg, accountId });
+export function resolveMediaMaxBytes(
+  accountId?: string | null,
+  cfg?: CoreConfig,
+): number | undefined {
+  const resolvedCfg = cfg ?? (getCore().config.loadConfig() as CoreConfig);
+  const matrixCfg = resolveMatrixAccountConfig({ cfg: resolvedCfg, accountId });
   const mediaMaxMb = typeof matrixCfg.mediaMaxMb === "number" ? matrixCfg.mediaMaxMb : undefined;
   if (typeof mediaMaxMb === "number") {
     return mediaMaxMb * 1024 * 1024;
@@ -21,11 +24,13 @@ export function resolveMediaMaxBytes(accountId?: string | null): number | undefi
 
 export async function resolveMatrixClient(opts: {
   client?: MatrixClient;
+  cfg?: CoreConfig;
   timeoutMs?: number;
   accountId?: string | null;
 }): Promise<{ client: MatrixClient; stopOnDone: boolean }> {
   return await resolveRuntimeMatrixClient({
     client: opts.client,
+    cfg: opts.cfg,
     timeoutMs: opts.timeoutMs,
     accountId: opts.accountId,
     onResolved: async (client, context) => {
@@ -45,6 +50,7 @@ function stopResolvedMatrixClient(resolved: ResolvedRuntimeMatrixClient): void {
 export async function withResolvedMatrixClient<T>(
   opts: {
     client?: MatrixClient;
+    cfg?: CoreConfig;
     timeoutMs?: number;
     accountId?: string | null;
   },

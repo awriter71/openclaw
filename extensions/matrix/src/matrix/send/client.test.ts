@@ -106,6 +106,31 @@ describe("resolveMatrixClient", () => {
     );
   });
 
+  it("uses explicit cfg instead of loading runtime config", async () => {
+    const explicitCfg = {
+      channels: {
+        matrix: {
+          defaultAccount: "ops",
+        },
+      },
+    };
+
+    await resolveMatrixClient({
+      cfg: explicitCfg,
+      accountId: "ops",
+    });
+
+    expect(getMatrixRuntimeMock).not.toHaveBeenCalled();
+    expect(resolveMatrixAuthContextMock).toHaveBeenCalledWith({
+      cfg: explicitCfg,
+      accountId: "ops",
+    });
+    expect(resolveMatrixAuthMock).toHaveBeenCalledWith({
+      cfg: explicitCfg,
+      accountId: "ops",
+    });
+  });
+
   it("stops one-off matrix clients after wrapped sends succeed", async () => {
     const oneOffClient = createMockMatrixClient();
     createMatrixClientMock.mockResolvedValue(oneOffClient);

@@ -19,13 +19,14 @@ export type MatrixProfileUpdateResult = {
 };
 
 export async function applyMatrixProfileUpdate(params: {
+  cfg?: CoreConfig;
   account?: string;
   displayName?: string;
   avatarUrl?: string;
   avatarPath?: string;
 }): Promise<MatrixProfileUpdateResult> {
   const runtime = getMatrixRuntime();
-  const cfg = runtime.config.loadConfig() as CoreConfig;
+  const persistedCfg = runtime.config.loadConfig() as CoreConfig;
   const accountId = normalizeAccountId(params.account);
   const displayName = params.displayName?.trim() || null;
   const avatarUrl = params.avatarUrl?.trim() || null;
@@ -35,6 +36,7 @@ export async function applyMatrixProfileUpdate(params: {
   }
 
   const synced = await updateMatrixOwnProfile({
+    cfg: params.cfg,
     accountId,
     displayName: displayName ?? undefined,
     avatarUrl: avatarUrl ?? undefined,
@@ -42,7 +44,7 @@ export async function applyMatrixProfileUpdate(params: {
   });
   const persistedAvatarUrl =
     synced.uploadedAvatarSource && synced.resolvedAvatarUrl ? synced.resolvedAvatarUrl : avatarUrl;
-  const updated = updateMatrixAccountConfig(cfg, accountId, {
+  const updated = updateMatrixAccountConfig(persistedCfg, accountId, {
     name: displayName ?? undefined,
     avatarUrl: persistedAvatarUrl ?? undefined,
   });

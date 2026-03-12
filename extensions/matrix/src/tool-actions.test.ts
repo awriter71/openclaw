@@ -76,6 +76,7 @@ describe("handleMatrixAction pollVote", () => {
   });
 
   it("parses snake_case vote params and forwards normalized selectors", async () => {
+    const cfg = {} as CoreConfig;
     const result = await handleMatrixAction(
       {
         action: "pollVote",
@@ -87,10 +88,11 @@ describe("handleMatrixAction pollVote", () => {
         poll_option_index: "2",
         poll_option_indexes: ["1", "bogus"],
       },
-      {} as CoreConfig,
+      cfg,
     );
 
     expect(mocks.voteMatrixPoll).toHaveBeenCalledWith("!room:example", "$poll", {
+      cfg,
       accountId: "main",
       optionIds: ["a2", "a1"],
       optionIndexes: [1, 2],
@@ -118,6 +120,7 @@ describe("handleMatrixAction pollVote", () => {
   });
 
   it("passes account-scoped opts to add reactions", async () => {
+    const cfg = { channels: { matrix: { actions: { reactions: true } } } } as CoreConfig;
     await handleMatrixAction(
       {
         action: "react",
@@ -126,15 +129,17 @@ describe("handleMatrixAction pollVote", () => {
         messageId: "$msg",
         emoji: "👍",
       },
-      { channels: { matrix: { actions: { reactions: true } } } } as CoreConfig,
+      cfg,
     );
 
     expect(mocks.reactMatrixMessage).toHaveBeenCalledWith("!room:example", "$msg", "👍", {
+      cfg,
       accountId: "ops",
     });
   });
 
   it("passes account-scoped opts to remove reactions", async () => {
+    const cfg = { channels: { matrix: { actions: { reactions: true } } } } as CoreConfig;
     await handleMatrixAction(
       {
         action: "react",
@@ -144,16 +149,18 @@ describe("handleMatrixAction pollVote", () => {
         emoji: "👍",
         remove: true,
       },
-      { channels: { matrix: { actions: { reactions: true } } } } as CoreConfig,
+      cfg,
     );
 
     expect(mocks.removeMatrixReactions).toHaveBeenCalledWith("!room:example", "$msg", {
+      cfg,
       accountId: "ops",
       emoji: "👍",
     });
   });
 
   it("passes account-scoped opts and limit to reaction listing", async () => {
+    const cfg = { channels: { matrix: { actions: { reactions: true } } } } as CoreConfig;
     const result = await handleMatrixAction(
       {
         action: "reactions",
@@ -162,10 +169,11 @@ describe("handleMatrixAction pollVote", () => {
         message_id: "$msg",
         limit: "5",
       },
-      { channels: { matrix: { actions: { reactions: true } } } } as CoreConfig,
+      cfg,
     );
 
     expect(mocks.listMatrixReactions).toHaveBeenCalledWith("!room:example", "$msg", {
+      cfg,
       accountId: "ops",
       limit: 5,
     });
@@ -176,6 +184,7 @@ describe("handleMatrixAction pollVote", () => {
   });
 
   it("passes account-scoped opts to message sends", async () => {
+    const cfg = { channels: { matrix: { actions: { messages: true } } } } as CoreConfig;
     await handleMatrixAction(
       {
         action: "sendMessage",
@@ -184,10 +193,11 @@ describe("handleMatrixAction pollVote", () => {
         content: "hello",
         threadId: "$thread",
       },
-      { channels: { matrix: { actions: { messages: true } } } } as CoreConfig,
+      cfg,
     );
 
     expect(mocks.sendMatrixMessage).toHaveBeenCalledWith("room:!room:example", "hello", {
+      cfg,
       accountId: "ops",
       mediaUrl: undefined,
       replyToId: undefined,
@@ -196,21 +206,26 @@ describe("handleMatrixAction pollVote", () => {
   });
 
   it("passes account-scoped opts to pin listing", async () => {
+    const cfg = { channels: { matrix: { actions: { pins: true } } } } as CoreConfig;
     await handleMatrixAction(
       {
         action: "listPins",
         accountId: "ops",
         roomId: "!room:example",
       },
-      { channels: { matrix: { actions: { pins: true } } } } as CoreConfig,
+      cfg,
     );
 
     expect(mocks.listMatrixPins).toHaveBeenCalledWith("!room:example", {
+      cfg,
       accountId: "ops",
     });
   });
 
   it("passes account-scoped opts to member and room info actions", async () => {
+    const memberCfg = {
+      channels: { matrix: { actions: { memberInfo: true } } },
+    } as CoreConfig;
     await handleMatrixAction(
       {
         action: "memberInfo",
@@ -218,27 +233,31 @@ describe("handleMatrixAction pollVote", () => {
         userId: "@u:example",
         roomId: "!room:example",
       },
-      { channels: { matrix: { actions: { memberInfo: true } } } } as CoreConfig,
+      memberCfg,
     );
+    const roomCfg = { channels: { matrix: { actions: { channelInfo: true } } } } as CoreConfig;
     await handleMatrixAction(
       {
         action: "channelInfo",
         accountId: "ops",
         roomId: "!room:example",
       },
-      { channels: { matrix: { actions: { channelInfo: true } } } } as CoreConfig,
+      roomCfg,
     );
 
     expect(mocks.getMatrixMemberInfo).toHaveBeenCalledWith("@u:example", {
+      cfg: memberCfg,
       accountId: "ops",
       roomId: "!room:example",
     });
     expect(mocks.getMatrixRoomInfo).toHaveBeenCalledWith("!room:example", {
+      cfg: roomCfg,
       accountId: "ops",
     });
   });
 
   it("persists self-profile updates through the shared profile helper", async () => {
+    const cfg = { channels: { matrix: { actions: { profile: true } } } } as CoreConfig;
     const result = await handleMatrixAction(
       {
         action: "setProfile",
@@ -246,10 +265,11 @@ describe("handleMatrixAction pollVote", () => {
         display_name: "Ops Bot",
         avatar_url: "mxc://example/avatar",
       },
-      { channels: { matrix: { actions: { profile: true } } } } as CoreConfig,
+      cfg,
     );
 
     expect(mocks.applyMatrixProfileUpdate).toHaveBeenCalledWith({
+      cfg,
       account: "ops",
       displayName: "Ops Bot",
       avatarUrl: "mxc://example/avatar",
@@ -265,16 +285,18 @@ describe("handleMatrixAction pollVote", () => {
   });
 
   it("accepts local avatar paths for self-profile updates", async () => {
+    const cfg = { channels: { matrix: { actions: { profile: true } } } } as CoreConfig;
     await handleMatrixAction(
       {
         action: "setProfile",
         accountId: "ops",
         path: "/tmp/avatar.jpg",
       },
-      { channels: { matrix: { actions: { profile: true } } } } as CoreConfig,
+      cfg,
     );
 
     expect(mocks.applyMatrixProfileUpdate).toHaveBeenCalledWith({
+      cfg,
       account: "ops",
       displayName: undefined,
       avatarUrl: undefined,

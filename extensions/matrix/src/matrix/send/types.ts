@@ -1,3 +1,4 @@
+import type { CoreConfig } from "../../types.js";
 import {
   MATRIX_ANNOTATION_RELATION_TYPE,
   MATRIX_REACTION_EVENT_TYPE,
@@ -85,6 +86,7 @@ export type MatrixSendResult = {
 
 export type MatrixSendOpts = {
   client?: import("../sdk.js").MatrixClient;
+  cfg?: CoreConfig;
   mediaUrl?: string;
   accountId?: string;
   replyToId?: string;

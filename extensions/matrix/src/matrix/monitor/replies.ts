@@ -1,9 +1,15 @@
-import type { MarkdownTableMode, ReplyPayload, RuntimeEnv } from "openclaw/plugin-sdk/matrix";
+import type {
+  MarkdownTableMode,
+  OpenClawConfig,
+  ReplyPayload,
+  RuntimeEnv,
+} from "openclaw/plugin-sdk/matrix";
 import { getMatrixRuntime } from "../../runtime.js";
 import type { MatrixClient } from "../sdk.js";
 import { sendMessageMatrix } from "../send.js";
 
 export async function deliverMatrixReplies(params: {
+  cfg: OpenClawConfig;
   replies: ReplyPayload[];
   roomId: string;
   client: MatrixClient;
@@ -15,11 +21,10 @@ export async function deliverMatrixReplies(params: {
   tableMode?: MarkdownTableMode;
 }): Promise<void> {
   const core = getMatrixRuntime();
-  const cfg = core.config.loadConfig();
   const tableMode =
     params.tableMode ??
     core.channel.text.resolveMarkdownTableMode({
-      cfg,
+      cfg: params.cfg,
       channel: "matrix",
       accountId: params.accountId,
     });
@@ -29,7 +34,7 @@ export async function deliverMatrixReplies(params: {
     }
   };
   const chunkLimit = Math.min(params.textLimit, 4000);
-  const chunkMode = core.channel.text.resolveChunkMode(cfg, "matrix", params.accountId);
+  const chunkMode = core.channel.text.resolveChunkMode(params.cfg, "matrix", params.accountId);
   let hasReplied = false;
   for (const reply of params.replies) {
     const hasMedia = Boolean(reply?.mediaUrl) || (reply?.mediaUrls?.length ?? 0) > 0;
@@ -68,6 +73,7 @@ export async function deliverMatrixReplies(params: {
         }
         await sendMessageMatrix(params.roomId, trimmed, {
           client: params.client,
+          cfg: params.cfg,
           replyToId: replyToIdForReply,
           threadId: params.threadId,
           accountId: params.accountId,
@@ -85,6 +91,7 @@ export async function deliverMatrixReplies(params: {
       const caption = first ? text : "";
       await sendMessageMatrix(params.roomId, caption, {
         client: params.client,
+        cfg: params.cfg,
         mediaUrl,
         replyToId: replyToIdForReply,
         threadId: params.threadId,
