@@ -52,6 +52,7 @@ What has been implemented:
 - loader top-level load orchestration now routes through `src/extension-host/loader-orchestrator.ts`
 - loader discovery and manifest bootstrap now routes through `src/extension-host/loader-bootstrap.ts`
 - loader mutable activation state now routes through `src/extension-host/loader-session.ts`
+- loader session run and finalization composition now routes through `src/extension-host/loader-run.ts`
 - loader activation policy outcomes now route through `src/extension-host/loader-activation-policy.ts`
 - loader record-state transitions now route through `src/extension-host/loader-state.ts`, which now enforces an explicit loader lifecycle state machine while preserving compatibility `PluginRecord.status` values
 - loader finalization policy results now route through `src/extension-host/loader-finalization-policy.ts`
@@ -71,6 +72,7 @@ How it has been implemented:
 - by moving provenance and duplicate-order policy next, so lifecycle migration can land on host-owned policy helpers instead of loader-local utilities
 - by extracting lazy runtime proxy creation and alias-wired Jiti module-loader creation into host-owned helpers before broader bootstrap or lifecycle ownership changes
 - by extracting discovery, manifest loading, manifest diagnostics, discovery-policy logging, provenance building, and candidate ordering into a host-owned loader-bootstrap helper before broader lifecycle ownership changes
+- by extracting candidate iteration, manifest lookup, per-candidate session processing, and finalization handoff into a host-owned loader-run helper before broader lifecycle ownership changes
 - by moving initial candidate planning and record construction next while leaving module import and registration flow unchanged
 - by moving entry-path opening and module import next while leaving cache wiring and lifecycle orchestration unchanged
 - by moving loader runtime decisions next while preserving the current lazy-load, config-validation, and memory-slot behavior

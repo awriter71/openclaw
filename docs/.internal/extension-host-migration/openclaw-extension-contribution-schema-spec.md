@@ -54,6 +54,7 @@ What has been implemented:
 - loader top-level load orchestration now routes through `src/extension-host/loader-orchestrator.ts`
 - loader discovery and manifest bootstrap now routes through `src/extension-host/loader-bootstrap.ts`
 - loader mutable activation state now routes through `src/extension-host/loader-session.ts`
+- loader session run and finalization composition now routes through `src/extension-host/loader-run.ts`
 - loader activation policy outcomes now route through `src/extension-host/loader-activation-policy.ts`
 - loader record-state transitions now route through `src/extension-host/loader-state.ts`, which now enforces an explicit loader lifecycle state machine while preserving compatibility `PluginRecord.status` values
 - loader finalization policy results now route through `src/extension-host/loader-finalization-policy.ts`
@@ -70,6 +71,7 @@ How it has been implemented:
 - by making the first loader compatibility, candidate-planning, import-flow, runtime-decision, register-flow, candidate-orchestration, top-level load orchestration, record-state with compatibility lifecycle mapping, and finalization helpers explicit host-owned seams before introducing a versioned compatibility layer
 - by extracting lazy runtime proxy creation and alias-wired Jiti module-loader creation into host-owned helpers before broader schema-driven lifecycle ownership changes
 - by extracting discovery, manifest loading, manifest diagnostics, discovery-policy logging, provenance building, and candidate ordering into a host-owned loader-bootstrap helper before broader schema-driven lifecycle ownership changes
+- by extracting candidate iteration, manifest lookup, per-candidate session processing, and finalization handoff into a host-owned loader-run helper before broader schema-driven lifecycle ownership changes
 - by turning the compatibility record-state layer into an enforced loader lifecycle state machine before broadening the schema-driven host lifecycle model
 - by moving mutable activation state into a host-owned loader session before broadening the schema-driven host lifecycle model
 - by extracting shared provenance path matching and install-rule evaluation into `src/extension-host/loader-provenance.ts` so activation and finalization policy seams reuse one host-owned implementation

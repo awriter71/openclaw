@@ -50,6 +50,7 @@ Relevant prerequisite work that has landed:
 - loader discovery and manifest bootstrap now has a host-owned helper boundary
 - loader discovery policy outcomes now have a host-owned helper boundary
 - loader mutable activation state now has a host-owned helper boundary
+- loader session run and finalization composition now has a host-owned helper boundary
 - loader activation policy outcomes now have a host-owned helper boundary
 - loader record-state transitions now have a host-owned helper boundary and enforced loader lifecycle state machine, while still preserving compatibility `PluginRecord.status` values
 - loader finalization policy outcomes now have a host-owned helper boundary
