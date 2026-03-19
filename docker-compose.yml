@@ -1,15 +1,28 @@
 services:
   openclaw-gateway:
     image: ${OPENCLAW_IMAGE:-openclaw:local}
+    # network_mode: host
     environment:
       HOME: /home/node
       TERM: xterm-256color
+<<<<<<< Updated upstream
       OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN:-}
       OPENCLAW_ALLOW_INSECURE_PRIVATE_WS: ${OPENCLAW_ALLOW_INSECURE_PRIVATE_WS:-}
       CLAUDE_AI_SESSION_KEY: ${CLAUDE_AI_SESSION_KEY:-}
       CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY:-}
       CLAUDE_WEB_COOKIE: ${CLAUDE_WEB_COOKIE:-}
       TZ: ${OPENCLAW_TZ:-UTC}
+=======
+      OPENCLAW_GATEWAY_TOKEN: ${OPENCLAW_GATEWAY_TOKEN}
+      CLAUDE_AI_SESSION_KEY: ${CLAUDE_AI_SESSION_KEY}
+      CLAUDE_WEB_SESSION_KEY: ${CLAUDE_WEB_SESSION_KEY}
+      CLAUDE_WEB_COOKIE: ${CLAUDE_WEB_COOKIE}
+      OPENCLAW_BIND: lan
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      BRAVE_API_KEY: ${BRAVE_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENCLAW_GATEWAY_CONTROL_UI_ALLOWED_ORIGINS: '["http://127.0.0.1:18789","http://localhost:18789"]'
+>>>>>>> Stashed changes
     volumes:
       - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
       - ${OPENCLAW_WORKSPACE_DIR}:/home/node/.openclaw/workspace
@@ -22,8 +35,8 @@ services:
     # group_add:
     #   - "${DOCKER_GID:-999}"
     ports:
-      - "${OPENCLAW_GATEWAY_PORT:-18789}:18789"
-      - "${OPENCLAW_BRIDGE_PORT:-18790}:18790"
+      - "18789:18789"
+      - "18790:18790"
     init: true
     restart: unless-stopped
     command:
@@ -31,10 +44,11 @@ services:
         "node",
         "dist/index.js",
         "gateway",
-        "--bind",
-        "${OPENCLAW_GATEWAY_BIND:-lan}",
         "--port",
         "18789",
+        "--bind",
+        "lan",
+        "--allow-unconfigured",
       ]
     healthcheck:
       test:
@@ -51,12 +65,16 @@ services:
 
   openclaw-cli:
     image: ${OPENCLAW_IMAGE:-openclaw:local}
+<<<<<<< Updated upstream
     network_mode: "service:openclaw-gateway"
     cap_drop:
       - NET_RAW
       - NET_ADMIN
     security_opt:
       - no-new-privileges:true
+=======
+  # network_mode: host #
+>>>>>>> Stashed changes
     environment:
       HOME: /home/node
       TERM: xterm-256color
@@ -73,6 +91,7 @@ services:
     stdin_open: true
     tty: true
     init: true
+    restart: unless-stopped
     entrypoint: ["node", "dist/index.js"]
     depends_on:
       - openclaw-gateway
