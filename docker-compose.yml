@@ -7,9 +7,12 @@ services:
       HOME: /home/node
       TERM: xterm-256color
       TZ: ${OPENCLAW_TZ:-UTC}
+      PLAYWRIGHT_BROWSERS_PATH: /home/node/.cache/ms-playwright
     volumes:
       - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
       - ${OPENCLAW_WORKSPACE_DIR}:/home/node/.openclaw/workspace
+      - ./skills/heritage-ads:/app/skills/heritage-ads
+      - heritage-ads-deps:/app/skills/heritage-ads/scripts/node_modules
       ## Uncomment the lines below to enable sandbox isolation
       ## (agents.defaults.sandbox). Requires Docker CLI in the image
       ## (build with --build-arg OPENCLAW_INSTALL_DOCKER_CLI=1) or use
@@ -27,7 +30,7 @@ services:
       [
         "sh",
         "-c",
-        "rm -rf /app/dist/extensions && exec node dist/index.js gateway --bind ${OPENCLAW_GATEWAY_BIND:-lan} --port 18789",
+        "rm -rf /app/dist/extensions && cd /app/skills/heritage-ads/scripts && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install 2>/dev/null; cd /app && exec node dist/index.js gateway --bind ${OPENCLAW_GATEWAY_BIND:-lan} --port 18789",
       ]
     healthcheck:
       test:
@@ -57,12 +60,18 @@ services:
       TERM: xterm-256color
       BROWSER: echo
       TZ: ${OPENCLAW_TZ:-UTC}
+      PLAYWRIGHT_BROWSERS_PATH: /home/node/.cache/ms-playwright
     volumes:
       - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
       - ${OPENCLAW_WORKSPACE_DIR}:/home/node/.openclaw/workspace
+      - ./skills/heritage-ads:/app/skills/heritage-ads
+      - heritage-ads-deps:/app/skills/heritage-ads/scripts/node_modules
     stdin_open: true
     tty: true
     init: true
     entrypoint: ["node", "dist/index.js"]
     depends_on:
       - openclaw-gateway
+
+volumes:
+  heritage-ads-deps:
