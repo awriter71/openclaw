@@ -1,0 +1,21 @@
+{
+  "name": "heritage-ads-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check-email": "npx tsx check-email.ts",
+    "classify": "npx tsx classify.ts",
+    "install-browser": "npx playwright install chromium",
+    "upload-ads": "npx tsx upload-ads.ts"
+  },
+  "dependencies": {
+    "imapflow": "^1.0.171",
+    "mailparser": "^3.7.2",
+    "playwright": "^1.51.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "tsx": "^4.19.3"
+  }
+}
