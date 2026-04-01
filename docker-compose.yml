@@ -1,5 +1,9 @@
 services:
   openclaw-gateway:
+    build:
+      context: .
+      args:
+        OPENCLAW_INSTALL_BROWSER: "1"
     image: ${OPENCLAW_IMAGE:-openclaw:local}
     env_file:
       - .env
@@ -11,6 +15,7 @@ services:
     volumes:
       - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
       - ${OPENCLAW_WORKSPACE_DIR}:/home/node/.openclaw/workspace
+      - ${HERITAGE_ADS_HOST_DIR}:/home/node/Documents/HeritagePlaceAds
       - ./skills/heritage-ads:/app/skills/heritage-ads
       - heritage-ads-deps:/app/skills/heritage-ads/scripts/node_modules
       ## Uncomment the lines below to enable sandbox isolation
@@ -64,6 +69,7 @@ services:
     volumes:
       - ${OPENCLAW_CONFIG_DIR}:/home/node/.openclaw
       - ${OPENCLAW_WORKSPACE_DIR}:/home/node/.openclaw/workspace
+      - ${HERITAGE_ADS_HOST_DIR}:/home/node/Documents/HeritagePlaceAds
       - ./skills/heritage-ads:/app/skills/heritage-ads
       - heritage-ads-deps:/app/skills/heritage-ads/scripts/node_modules
     stdin_open: true

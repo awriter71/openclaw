@@ -29,12 +29,12 @@ async function main(): Promise<void> {
 
   const browser = await chromium.launch({ headless: false });
   const page = await browser.newPage();
-  page.setDefaultTimeout(20_000);
+  page.setDefaultTimeout(45_000);
 
   try {
     // ---- LOGIN PAGE ----
     console.log("=== LOGIN PAGE ===");
-    await page.goto("https://sminfinity.com", { waitUntil: "networkidle" });
+    await page.goto("https://sminfinity.com", { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(2000);
 
     // Discover login form elements
@@ -109,7 +109,7 @@ async function main(): Promise<void> {
 
     // ---- SCHEDULES PAGE ----
     console.log("\n=== SCHEDULES PAGE ===");
-    await page.goto("https://sminfinity.com/schedules", { waitUntil: "networkidle" });
+    await page.goto("https://sminfinity.com/schedules", { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(2000);
 
     // Nav tabs
@@ -177,7 +177,7 @@ async function main(): Promise<void> {
 
     // ---- EDIT PLAYLIST PAGE (lunchTime = /editplaylist/2) ----
     console.log("\n=== EDIT PLAYLIST PAGE (lunchTime) ===");
-    await page.goto("https://sminfinity.com/editplaylist/2", { waitUntil: "networkidle" });
+    await page.goto("https://sminfinity.com/editplaylist/2", { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(2000);
 
     // Playlist Media section

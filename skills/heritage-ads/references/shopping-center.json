@@ -1,0 +1,227 @@
+{
+  "name": "Heritage Place Shopping Center",
+  "location": "Englewood, CO",
+  "totalSqft": 86887,
+  "tenants": [
+    {
+      "dba": "Prana Beauty and Wellness Salon",
+      "legalName": "Prana Beauty and Wellness Salon, LLC",
+      "building": "102",
+      "sqft": 2109,
+      "category": "Beauty & Wellness"
+    },
+    {
+      "dba": "DeliZone",
+      "legalName": "JT Food Service, LLC",
+      "building": "103",
+      "sqft": 1156,
+      "category": "Food & Beverage"
+    },
+    {
+      "dba": "Popcorn & Gifts",
+      "legalName": "JPE Concessions, LLC",
+      "building": "104",
+      "sqft": 1165,
+      "category": "Specialty Food & Gifts"
+    },
+    {
+      "dba": "Hear Again America",
+      "legalName": "Campo Mentis, LLC",
+      "building": "105",
+      "sqft": 1165,
+      "category": "Hearing Health"
+    },
+    {
+      "dba": "Colonnas Pizza & Pasta",
+      "legalName": "Bremam, LLC",
+      "building": "106",
+      "sqft": 3362,
+      "category": "Restaurant"
+    },
+    {
+      "dba": "Heritage Card & Gifts",
+      "legalName": "MAPA Enterprises, LLC",
+      "building": "107",
+      "sqft": 3362,
+      "category": "Gifts & Cards"
+    },
+    {
+      "dba": "Rocky Mountain Jewelry & Loan",
+      "legalName": "Nicolas Joseph Bosted",
+      "building": "108",
+      "sqft": 1043,
+      "category": "Jewelry & Pawn"
+    },
+    {
+      "dba": "DTC Barbershop",
+      "legalName": "DTC Barbershop, LLC",
+      "building": "109",
+      "sqft": 1287,
+      "category": "Barbershop"
+    },
+    {
+      "dba": "Cats Only Vet",
+      "legalName": "Cats Only Vet, LLC",
+      "building": "110",
+      "sqft": 4660,
+      "category": "Veterinary"
+    },
+    {
+      "dba": "Heritage Wine and More",
+      "legalName": "Heritage Wine and More, LLC",
+      "building": "113",
+      "sqft": 13090,
+      "category": "Liquor & Wine"
+    },
+    {
+      "dba": "Ace Pet Grooming / The Wrinkle Dog Wash",
+      "legalName": "The Wrinkle Dog Wash",
+      "building": "118",
+      "sqft": 1993,
+      "category": "Pet Grooming"
+    },
+    {
+      "dba": "Super Cleaners",
+      "legalName": "Miek Enterprises, Inc.",
+      "building": "201",
+      "sqft": 1900,
+      "category": "Dry Cleaning"
+    },
+    {
+      "dba": "Flooring by Designs",
+      "legalName": "Hope Freund",
+      "building": "203",
+      "sqft": 900,
+      "category": "Flooring"
+    },
+    {
+      "dba": "Nail Envy",
+      "legalName": "KKS Enterprises, Inc",
+      "building": "204",
+      "sqft": 1323,
+      "category": "Nail Salon"
+    },
+    {
+      "dba": "Advanced Eyecare Center",
+      "legalName": "Advanced Eyecare Center, P.C.",
+      "building": "205",
+      "sqft": 2668,
+      "category": "Optometry"
+    },
+    {
+      "dba": "Kumon",
+      "legalName": "Carol Vaughn",
+      "building": "206",
+      "sqft": 1694,
+      "category": "Education / Tutoring"
+    },
+    {
+      "dba": "Mini Moo's Tea Shop",
+      "legalName": "Ben Shang Chan",
+      "building": "300A",
+      "sqft": 909,
+      "category": "Beverage / Tea"
+    },
+    {
+      "dba": "Heritage Health",
+      "legalName": "Michael Stofan and Paul Marmlick",
+      "building": "300B",
+      "sqft": 1351,
+      "category": "Health & Wellness"
+    },
+    {
+      "dba": "Amplified Arts",
+      "legalName": "Amplified Arts, LLC",
+      "building": "300C",
+      "sqft": 1910,
+      "category": "Arts / Music"
+    },
+    {
+      "dba": "Sakura Bowl Restaurant",
+      "legalName": "Goodhand, Inc.",
+      "building": "300E",
+      "sqft": 1250,
+      "category": "Restaurant"
+    },
+    {
+      "dba": "The Weilis Mongolian Barbeque",
+      "legalName": "The Weilis Mongolian Barbeque, Inc.",
+      "building": "300G",
+      "sqft": 3000,
+      "category": "Restaurant"
+    },
+    {
+      "dba": "Goodyear Tire & Rubber",
+      "legalName": "The Goodyear Tire & Rubber Company",
+      "building": "400A",
+      "sqft": 6999,
+      "category": "Auto Service"
+    },
+    {
+      "dba": "Eastern Dragon",
+      "legalName": "Hua Mei II, LLC",
+      "building": "400C",
+      "sqft": 1250,
+      "category": "Restaurant"
+    },
+    {
+      "dba": "Qdoba",
+      "legalName": "Qdoba Company Restaurants, LLC",
+      "building": "7465",
+      "sqft": 3000,
+      "category": "Restaurant"
+    },
+    {
+      "dba": "Commerce Bank",
+      "legalName": "Commerce Bank, a Missouri Bank and Trust Company",
+      "building": "7481",
+      "sqft": 3300,
+      "category": "Banking"
+    },
+    {
+      "dba": "Hyderabad House",
+      "legalName": "Samskruthi, LLC",
+      "building": "7605",
+      "sqft": 2776,
+      "category": "Restaurant"
+    },
+    {
+      "dba": "Grease Monkey",
+      "legalName": "Utsler Investments, LLC",
+      "building": "7665",
+      "sqft": 1795,
+      "category": "Auto Service"
+    },
+    {
+      "dba": "Con Cu Breakfast & Bakery",
+      "legalName": "RVVS, LLC",
+      "building": "7685",
+      "sqft": 5208,
+      "category": "Restaurant"
+    },
+    {
+      "dba": "Con Cu Breakfast Patio",
+      "legalName": "RVVS, LLC",
+      "building": "Patio",
+      "sqft": 634,
+      "category": "Restaurant"
+    },
+    {
+      "dba": "Winston Coffee",
+      "legalName": "HappyFastDelicious, LLC",
+      "building": "7695",
+      "sqft": null,
+      "category": "Coffee / Beverage",
+      "notes": "Kiosk"
+    }
+  ],
+  "vacantSpaces": [
+    { "building": "101", "sqft": 5000, "notes": "Former Fit Body Boot Camp" },
+    { "building": "114", "sqft": 1243, "notes": "" },
+    { "building": "115", "sqft": 614, "notes": "" },
+    { "building": "116", "sqft": 1271, "notes": "" },
+    { "building": "202", "sqft": 900, "notes": "" },
+    { "building": "300F", "sqft": 1300, "notes": "" }
+  ],
+  "avoidCategories": []
+}

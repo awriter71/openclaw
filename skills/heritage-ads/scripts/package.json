@@ -12,7 +12,8 @@
   "dependencies": {
     "imapflow": "^1.0.171",
     "mailparser": "^3.7.2",
-    "playwright": "^1.51.1"
+    "playwright": "^1.51.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/node": "^22.13.10",
