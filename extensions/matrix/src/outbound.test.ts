@@ -31,6 +31,16 @@ describe("matrixOutbound cfg threading", () => {
     mocks.sendPollMatrix.mockResolvedValue({ eventId: "$poll", roomId: "!room:example" });
   });
 
+  it("chunks outbound text without requiring Matrix runtime initialization", () => {
+    const chunker = matrixOutbound.chunker;
+    if (!chunker) {
+      throw new Error("matrixOutbound.chunker missing");
+    }
+
+    expect(() => chunker("hello world", 5)).not.toThrow();
+    expect(chunker("hello world", 5)).toEqual(["hello", "world"]);
+  });
+
   it("passes resolved cfg to sendMessageMatrix for text sends", async () => {
     const cfg = {
       channels: {
@@ -75,7 +85,9 @@ describe("matrixOutbound cfg threading", () => {
       to: "room:!room:example",
       text: "caption",
       mediaUrl: "file:///tmp/cat.png",
+      mediaLocalRoots: ["/tmp/openclaw"],
       accountId: "default",
+      audioAsVoice: true,
     });
 
     expect(mocks.sendMessageMatrix).toHaveBeenCalledWith(
@@ -84,6 +96,8 @@ describe("matrixOutbound cfg threading", () => {
       expect.objectContaining({
         cfg,
         mediaUrl: "file:///tmp/cat.png",
+        mediaLocalRoots: ["/tmp/openclaw"],
+        audioAsVoice: true,
       }),
     );
   });

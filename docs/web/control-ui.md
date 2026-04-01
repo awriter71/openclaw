@@ -49,6 +49,10 @@ openclaw devices list
 openclaw devices approve <requestId>
 ```
 
+If the browser retries pairing with changed auth details (role/scopes/public
+key), the previous pending request is superseded and a new `requestId` is
+created. Re-run `openclaw devices list` before approval.
+
 Once approved, the device is remembered and won't require re-approval unless
 you revoke it with `openclaw devices revoke --device <id> --role <role>`. See
 [Devices CLI](/cli/devices) for token rotation and revocation.
@@ -83,7 +87,10 @@ The Control UI can localize itself on first load based on your browser locale, a
 - Config: view/edit `~/.openclaw/openclaw.json` (`config.get`, `config.set`)
 - Config: apply + restart with validation (`config.apply`) and wake the last active session
 - Config writes include a base-hash guard to prevent clobbering concurrent edits
-- Config schema + form rendering (`config.schema`, including plugin + channel schemas); Raw JSON editor remains available
+- Config writes (`config.set`/`config.apply`/`config.patch`) also preflight active SecretRef resolution for refs in the submitted config payload; unresolved active submitted refs are rejected before write
+- Config schema + form rendering (`config.schema`, including plugin + channel schemas); Raw JSON editor is available only when the snapshot has a safe raw round-trip
+- If a snapshot cannot safely round-trip raw text, Control UI forces Form mode and disables Raw mode for that snapshot
+- Structured SecretRef object values are rendered read-only in form text inputs to prevent accidental object-to-string corruption
 - Debug: status/health/models snapshots + event log + manual RPC calls (`status`, `health`, `models.list`)
 - Logs: live tail of gateway file logs with filter/export (`logs.tail`)
 - Update: run a package/git update + restart (`update.run`) with a restart report
@@ -269,3 +276,10 @@ Example:
 ```
 
 Remote access setup details: [Remote access](/gateway/remote).
+
+## Related
+
+- [Dashboard](/web/dashboard) — gateway dashboard
+- [WebChat](/web/webchat) — browser-based chat interface
+- [TUI](/web/tui) — terminal user interface
+- [Health Checks](/gateway/health) — gateway health monitoring

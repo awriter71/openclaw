@@ -17,12 +17,12 @@ type MatchPluginCommandFn = typeof import("openclaw/plugin-sdk/plugin-runtime").
 type ExecutePluginCommandFn =
   typeof import("openclaw/plugin-sdk/plugin-runtime").executePluginCommand;
 type DispatchReplyWithBufferedBlockDispatcherFn =
-  typeof import("openclaw/plugin-sdk/reply-runtime").dispatchReplyWithBufferedBlockDispatcher;
+  typeof import("openclaw/plugin-sdk/reply-dispatch-runtime").dispatchReplyWithBufferedBlockDispatcher;
 type DispatchReplyWithBufferedBlockDispatcherResult = Awaited<
   ReturnType<DispatchReplyWithBufferedBlockDispatcherFn>
 >;
 type RecordInboundSessionMetaSafeFn =
-  typeof import("openclaw/plugin-sdk/channel-runtime").recordInboundSessionMetaSafe;
+  typeof import("openclaw/plugin-sdk/conversation-runtime").recordInboundSessionMetaSafe;
 type AnyMock = MockFn<(...args: unknown[]) => unknown>;
 type AnyAsyncMock = MockFn<(...args: unknown[]) => Promise<unknown>>;
 type NativeCommandHarness = {
@@ -58,15 +58,16 @@ const replyPipelineMocks = vi.hoisted(() => {
     dispatchReplyWithBufferedBlockDispatcher: vi.fn<DispatchReplyWithBufferedBlockDispatcherFn>(
       async () => dispatchReplyResult,
     ),
-    createReplyPrefixOptions: vi.fn(() => ({ onModelSelected: () => {} })),
+    createChannelReplyPipeline: vi.fn(() => ({ onModelSelected: () => {} })),
     recordInboundSessionMetaSafe: vi.fn<RecordInboundSessionMetaSafeFn>(async () => undefined),
   };
 });
 export const dispatchReplyWithBufferedBlockDispatcher =
   replyPipelineMocks.dispatchReplyWithBufferedBlockDispatcher;
 
-vi.mock("openclaw/plugin-sdk/reply-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/reply-runtime")>();
+vi.mock("openclaw/plugin-sdk/reply-dispatch-runtime", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("openclaw/plugin-sdk/reply-dispatch-runtime")>();
   return {
     ...actual,
     finalizeInboundContext: replyPipelineMocks.finalizeInboundContext,
@@ -74,12 +75,20 @@ vi.mock("openclaw/plugin-sdk/reply-runtime", async (importOriginal) => {
       replyPipelineMocks.dispatchReplyWithBufferedBlockDispatcher,
   };
 });
-vi.mock("openclaw/plugin-sdk/channel-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/channel-runtime")>();
+vi.mock("openclaw/plugin-sdk/conversation-runtime", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/conversation-runtime")>();
   return {
     ...actual,
-    createReplyPrefixOptions: replyPipelineMocks.createReplyPrefixOptions,
     recordInboundSessionMetaSafe: replyPipelineMocks.recordInboundSessionMetaSafe,
+    readChannelAllowFromStore: vi.fn(async () => []),
+  };
+});
+vi.mock("openclaw/plugin-sdk/channel-reply-pipeline", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("openclaw/plugin-sdk/channel-reply-pipeline")>();
+  return {
+    ...actual,
+    createChannelReplyPipeline: replyPipelineMocks.createChannelReplyPipeline,
   };
 });
 
@@ -88,13 +97,7 @@ const deliveryMocks = vi.hoisted(() => ({
 }));
 export const deliverReplies = deliveryMocks.deliverReplies;
 vi.mock("./bot/delivery.js", () => ({ deliverReplies: deliveryMocks.deliverReplies }));
-vi.mock("openclaw/plugin-sdk/conversation-runtime", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("openclaw/plugin-sdk/conversation-runtime")>();
-  return {
-    ...actual,
-    readChannelAllowFromStore: vi.fn(async () => []),
-  };
-});
+vi.mock("./bot/delivery.replies.js", () => ({ deliverReplies: deliveryMocks.deliverReplies }));
 export { createNativeCommandTestParams };
 
 export function createNativeCommandsHarness(params?: {
@@ -116,10 +119,18 @@ export function createNativeCommandsHarness(params?: {
     loadConfig: vi.fn(() => params?.cfg ?? ({} as OpenClawConfig)),
     resolveStorePath: vi.fn((storePath?: string) => storePath ?? "/tmp/sessions.json"),
     readChannelAllowFromStore: vi.fn(async () => []),
+    upsertChannelPairingRequest: vi.fn(async () => ({ code: "PAIRCODE", created: true })),
     enqueueSystemEvent: vi.fn(),
     dispatchReplyWithBufferedBlockDispatcher:
       replyPipelineMocks.dispatchReplyWithBufferedBlockDispatcher,
+    buildModelsProviderData: vi.fn(async () => ({
+      byProvider: new Map<string, Set<string>>(),
+      providers: [],
+      resolvedDefault: { provider: "openai", model: "gpt-4.1" },
+      modelNames: new Map<string, string>(),
+    })),
     listSkillCommandsForAgents: vi.fn(() => []),
+    syncTelegramMenuCommands: vi.fn(),
     wasSentByBot: vi.fn(() => false),
   };
   const bot = {

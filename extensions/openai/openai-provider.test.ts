@@ -1,5 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { buildOpenAICodexProviderPlugin } from "./openai-codex-provider.js";
 import { buildOpenAIProvider } from "./openai-provider.js";
+
+const refreshOpenAICodexTokenMock = vi.hoisted(() => vi.fn());
+
+vi.mock("./openai-codex-provider.runtime.js", () => ({
+  refreshOpenAICodexToken: refreshOpenAICodexTokenMock,
+}));
 
 describe("buildOpenAIProvider", () => {
   it("resolves gpt-5.4 mini and nano from GPT-5 small-model templates", () => {
@@ -65,8 +72,8 @@ describe("buildOpenAIProvider", () => {
       id: "gpt-5.4-nano",
       api: "openai-responses",
       baseUrl: "https://api.openai.com/v1",
-      contextWindow: 200_000,
-      maxTokens: 64_000,
+      contextWindow: 400_000,
+      maxTokens: 128_000,
     });
   });
 
@@ -94,15 +101,92 @@ describe("buildOpenAIProvider", () => {
       ],
     } as never);
 
-    expect(entries).toContainEqual({
-      provider: "openai",
-      id: "gpt-5.4-mini",
-      name: "gpt-5.4-mini",
-    });
-    expect(entries).toContainEqual({
-      provider: "openai",
-      id: "gpt-5.4-nano",
-      name: "gpt-5.4-nano",
-    });
+    expect(entries).toContainEqual(
+      expect.objectContaining({
+        provider: "openai",
+        id: "gpt-5.4-mini",
+        name: "gpt-5.4-mini",
+        reasoning: true,
+        input: ["text", "image"],
+        contextWindow: 400_000,
+      }),
+    );
+    expect(entries).toContainEqual(
+      expect.objectContaining({
+        provider: "openai",
+        id: "gpt-5.4-nano",
+        name: "gpt-5.4-nano",
+        reasoning: true,
+        input: ["text", "image"],
+        contextWindow: 400_000,
+      }),
+    );
+  });
+
+  it("keeps modern live selection on OpenAI 5.2+ and Codex 5.2+", () => {
+    const provider = buildOpenAIProvider();
+    const codexProvider = buildOpenAICodexProviderPlugin();
+
+    expect(
+      provider.isModernModelRef?.({
+        provider: "openai",
+        modelId: "gpt-5.0",
+      } as never),
+    ).toBe(false);
+    expect(
+      provider.isModernModelRef?.({
+        provider: "openai",
+        modelId: "gpt-5.2",
+      } as never),
+    ).toBe(true);
+    expect(
+      provider.isModernModelRef?.({
+        provider: "openai",
+        modelId: "gpt-5.4",
+      } as never),
+    ).toBe(true);
+
+    expect(
+      codexProvider.isModernModelRef?.({
+        provider: "openai-codex",
+        modelId: "gpt-5.1-codex",
+      } as never),
+    ).toBe(false);
+    expect(
+      codexProvider.isModernModelRef?.({
+        provider: "openai-codex",
+        modelId: "gpt-5.1-codex-max",
+      } as never),
+    ).toBe(false);
+    expect(
+      codexProvider.isModernModelRef?.({
+        provider: "openai-codex",
+        modelId: "gpt-5.2-codex",
+      } as never),
+    ).toBe(true);
+    expect(
+      codexProvider.isModernModelRef?.({
+        provider: "openai-codex",
+        modelId: "gpt-5.4",
+      } as never),
+    ).toBe(true);
+  });
+
+  it("falls back to cached codex oauth credentials on accountId extraction failures", async () => {
+    const provider = buildOpenAICodexProviderPlugin();
+    const credential = {
+      type: "oauth" as const,
+      provider: "openai-codex",
+      access: "cached-access-token",
+      refresh: "refresh-token",
+      expires: Date.now() - 60_000,
+    };
+
+    refreshOpenAICodexTokenMock.mockReset();
+    refreshOpenAICodexTokenMock.mockRejectedValueOnce(
+      new Error("Failed to extract accountId from token"),
+    );
+
+    await expect(provider.refreshOAuth?.(credential)).resolves.toEqual(credential);
   });
 });

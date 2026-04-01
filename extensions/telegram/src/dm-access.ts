@@ -6,6 +6,7 @@ import { upsertChannelPairingRequest } from "openclaw/plugin-sdk/conversation-ru
 import { logVerbose } from "openclaw/plugin-sdk/runtime-env";
 import { withTelegramApiErrorLogging } from "./api-logging.js";
 import { resolveSenderAllowMatch, type NormalizedAllowFrom } from "./bot-access.js";
+import { renderTelegramHtmlText } from "./format.js";
 
 type TelegramDmAccessLogger = {
   info: (obj: Record<string, unknown>, msg: string) => void;
@@ -40,8 +41,19 @@ export async function enforceTelegramDmAccess(params: {
   accountId: string;
   bot: Bot;
   logger: TelegramDmAccessLogger;
+  upsertPairingRequest?: typeof upsertChannelPairingRequest;
 }): Promise<boolean> {
-  const { isGroup, dmPolicy, msg, chatId, effectiveDmAllow, accountId, bot, logger } = params;
+  const {
+    isGroup,
+    dmPolicy,
+    msg,
+    chatId,
+    effectiveDmAllow,
+    accountId,
+    bot,
+    logger,
+    upsertPairingRequest,
+  } = params;
   if (isGroup) {
     return true;
   }
@@ -73,7 +85,7 @@ export async function enforceTelegramDmAccess(params: {
       await createChannelPairingChallengeIssuer({
         channel: "telegram",
         upsertPairingRequest: async ({ id, meta }) =>
-          await upsertChannelPairingRequest({
+          await (upsertPairingRequest ?? upsertChannelPairingRequest)({
             channel: "telegram",
             id,
             accountId,
@@ -102,9 +114,10 @@ export async function enforceTelegramDmAccess(params: {
           );
         },
         sendPairingReply: async (text) => {
+          const html = renderTelegramHtmlText(text);
           await withTelegramApiErrorLogging({
             operation: "sendMessage",
-            fn: () => bot.api.sendMessage(chatId, text),
+            fn: () => bot.api.sendMessage(chatId, html, { parse_mode: "HTML" }),
           });
         },
         onReplyError: (err) => {
