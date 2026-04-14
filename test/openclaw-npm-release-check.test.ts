@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
+import { WORKSPACE_TEMPLATE_PACK_PATHS } from "../scripts/lib/workspace-bootstrap-smoke.mjs";
 import {
   compareReleaseVersions,
   collectControlUiPackErrors,
+  collectForbiddenPackedPathErrors,
   collectReleasePackageMetadataErrors,
   collectReleaseTagErrors,
   parseNpmPackJsonOutput,
@@ -85,36 +87,42 @@ describe("resolveNpmPublishPlan", () => {
     });
   });
 
-  it("publishes stable releases to latest and mirrors beta", () => {
+  it("publishes stable releases to beta first", () => {
     expect(resolveNpmPublishPlan("2026.3.29")).toEqual({
       channel: "stable",
-      publishTag: "latest",
-      mirrorDistTags: ["beta"],
+      publishTag: "beta",
+      mirrorDistTags: [],
     });
   });
 
-  it("mirrors beta for stable correction releases too", () => {
+  it("publishes stable correction releases to beta first too", () => {
     expect(resolveNpmPublishPlan("2026.3.29-2")).toEqual({
       channel: "stable",
-      publishTag: "latest",
-      mirrorDistTags: ["beta"],
+      publishTag: "beta",
+      mirrorDistTags: [],
     });
   });
 
-  it("does not mirror beta when beta already points at a newer prerelease", () => {
-    expect(resolveNpmPublishPlan("2026.3.29", "2026.4.1-beta.1")).toEqual({
+  it("can publish stable releases directly to latest when requested", () => {
+    expect(resolveNpmPublishPlan("2026.3.29", undefined, "latest")).toEqual({
       channel: "stable",
       publishTag: "latest",
       mirrorDistTags: [],
     });
   });
 
-  it("still mirrors beta when beta points at the same release line", () => {
-    expect(resolveNpmPublishPlan("2026.3.29", "2026.3.29-beta.2")).toEqual({
+  it("ignores current beta dist-tag state for stable publishes", () => {
+    expect(resolveNpmPublishPlan("2026.3.29", "2026.4.1-beta.1")).toEqual({
       channel: "stable",
-      publishTag: "latest",
-      mirrorDistTags: ["beta"],
+      publishTag: "beta",
+      mirrorDistTags: [],
     });
+  });
+
+  it("rejects publishing beta prereleases to latest", () => {
+    expect(() => resolveNpmPublishPlan("2026.3.29-beta.2", undefined, "latest")).toThrow(
+      "Beta prereleases must publish to the beta dist-tag.",
+    );
   });
 });
 
@@ -273,6 +281,10 @@ describe("parseNpmPackJsonOutput", () => {
 describe("collectControlUiPackErrors", () => {
   it("rejects packs that ship the dashboard HTML without the asset payload", () => {
     expect(collectControlUiPackErrors(["dist/control-ui/index.html"])).toEqual([
+      ...WORKSPACE_TEMPLATE_PACK_PATHS.map(
+        (requiredPath) =>
+          `npm package is missing required path "${requiredPath}". Ensure UI assets are built and included before publish.`,
+      ),
       'npm package is missing Control UI asset payload under "dist/control-ui/assets/". Refuse release when the dashboard tarball would be empty.',
     ]);
   });
@@ -281,10 +293,42 @@ describe("collectControlUiPackErrors", () => {
     expect(
       collectControlUiPackErrors([
         "dist/control-ui/index.html",
+        ...WORKSPACE_TEMPLATE_PACK_PATHS,
         "dist/control-ui/assets/index-Bu8rSoJV.js",
         "dist/control-ui/assets/index-BK0yXA_h.css",
       ]),
     ).toEqual([]);
+  });
+});
+
+describe("collectForbiddenPackedPathErrors", () => {
+  it("rejects generated docs artifacts in npm pack output", () => {
+    expect(
+      collectForbiddenPackedPathErrors([
+        "dist/index.js",
+        "docs/.generated/config-baseline.json",
+        "docs/.generated/config-baseline.plugin.json",
+      ]),
+    ).toEqual([
+      'npm package must not include generated docs artifact "docs/.generated/config-baseline.json".',
+      'npm package must not include generated docs artifact "docs/.generated/config-baseline.plugin.json".',
+    ]);
+  });
+
+  it("rejects private qa artifacts in npm pack output", () => {
+    expect(
+      collectForbiddenPackedPathErrors([
+        "dist/extensions/qa-channel/runtime-api.js",
+        "dist/extensions/qa-channel/package.json",
+        "dist/extensions/qa-lab/runtime-api.js",
+        "dist/extensions/qa-lab/src/cli.js",
+      ]),
+    ).toEqual([
+      'npm package must not include private QA channel artifact "dist/extensions/qa-channel/package.json".',
+      'npm package must not include private QA channel artifact "dist/extensions/qa-channel/runtime-api.js".',
+      'npm package must not include private QA lab artifact "dist/extensions/qa-lab/runtime-api.js".',
+      'npm package must not include private QA lab artifact "dist/extensions/qa-lab/src/cli.js".',
+    ]);
   });
 });
 
