@@ -1,4 +1,41 @@
 {
   "description": "Log of tenant leads already surfaced for Heritage Place Shopping Center. Updated each Friday after delivery. Atlas checks this before generating new leads to avoid repeats.",
-  "leads": []
+  "leads": [
+    {
+      "businessName": "M.G. Tailoring LLC",
+      "category": "Tailoring & Alterations",
+      "location": "3021 W Bellewood Dr, Englewood, CO 80110",
+      "surfacedDate": "2026-04-03"
+    },
+    {
+      "businessName": "Denver Sports Massage",
+      "category": "Massage Therapy & Acupuncture",
+      "location": "5950 S Willow Dr Ste 200, Greenwood Village, CO 80111",
+      "surfacedDate": "2026-04-03"
+    },
+    {
+      "businessName": "Rise Yoga & Wellness",
+      "category": "Boutique Yoga & Movement Studio",
+      "location": "601 16th St, Golden, CO 80401",
+      "surfacedDate": "2026-04-03"
+    },
+    {
+      "businessName": "H2 Health & Wellness",
+      "category": "Multidisciplinary Health Clinic (PT, Chiropractic, Pilates, Massage, Dry Needling)",
+      "location": "Downtown Littleton, CO",
+      "surfacedDate": "2026-04-10"
+    },
+    {
+      "businessName": "Eclectic Ground Martial Arts",
+      "category": "Martial Arts / Mind-Body Studio (Tai Chi, Wing Chun, Kickboxing, Qigong, Meditation)",
+      "location": "5650 Greenwood Plaza Blvd, #100, Englewood, CO 80111",
+      "surfacedDate": "2026-04-10"
+    },
+    {
+      "businessName": "Denver Wellness & Aesthetics Center",
+      "category": "Medical Aesthetic Spa / Concierge & Regenerative Medicine",
+      "location": "500 E Hampden Ave, Ste 206, Englewood, CO 80113",
+      "surfacedDate": "2026-04-10"
+    }
+  ]
 }

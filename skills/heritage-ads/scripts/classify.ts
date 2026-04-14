@@ -35,7 +35,38 @@ export function getCompanyList(): string[] {
 }
 
 /**
- * Deterministic classification: tries sender-map first, then keyword match.
+ * Extract the original sender from a forwarded email body.
+ * Looks for patterns like:
+ *   - "---------- Forwarded message ----------\nFrom: Name <email@example.com>"
+ *   - "Begin forwarded message:\n...\nFrom: Name <email@example.com>"
+ *   - "From: email@example.com" near the top of a forwarded block
+ * Returns the extracted email address, or null if not found.
+ */
+function extractForwardedSender(subject: string, body: string): string | null {
+  const isForwarded =
+    /^Fwd?:/i.test(subject) ||
+    body.includes("Forwarded message") ||
+    body.includes("Begin forwarded message") ||
+    body.includes("forwarded message");
+
+  if (!isForwarded) return null;
+
+  const fromPatterns = [
+    /From:\s*[^<]*<([^>]+@[^>]+)>/im,
+    /From:\s*([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,})/im,
+  ];
+
+  for (const pattern of fromPatterns) {
+    const match = body.match(pattern);
+    if (match?.[1]) return match[1].toLowerCase().trim();
+  }
+
+  return null;
+}
+
+/**
+ * Deterministic classification: tries sender-map first, then forwarded sender,
+ * then keyword match.
  * Returns the method used and company name, or `{ method: "none" }` if no match.
  */
 export function classifyEmail(sender: string, subject: string, body: string): ClassifyResult {
@@ -48,7 +79,29 @@ export function classifyEmail(sender: string, subject: string, body: string): Cl
       normalizedSender === email.toLowerCase() ||
       normalizedSender.includes(email.toLowerCase())
     ) {
-      return { method: "sender-map", company };
+      // Check if this is a forwarded email — the original sender may map
+      // to a different company than the forwarder.
+      const forwardedSender = extractForwardedSender(subject, body);
+      if (forwardedSender && forwardedSender !== normalizedSender) {
+        for (const [fwdEmail, fwdCompany] of Object.entries(senderMap)) {
+          if (forwardedSender === fwdEmail.toLowerCase()) {
+            return { method: "sender-map", company: fwdCompany };
+          }
+        }
+        // Forwarded sender not in sender-map — fall through to keyword match
+      } else {
+        return { method: "sender-map", company };
+      }
+    }
+  }
+
+  // Method A.1b: check forwarded sender even if outer sender wasn't in the map
+  const forwardedSender = extractForwardedSender(subject, body);
+  if (forwardedSender) {
+    for (const [email, company] of Object.entries(senderMap)) {
+      if (forwardedSender === email.toLowerCase()) {
+        return { method: "sender-map", company };
+      }
     }
   }
 

@@ -383,9 +383,30 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  // Expand _all files into per-timeslot copies before uploading
+  // Expand _all files into per-timeslot copies before uploading.
+  // Split into _all vs non-all first so duplicates don't pile up.
   console.log("Expanding _all files into per-timeslot copies...");
-  const images = expandAllTimeslots(rawImages);
+  const nonAllImages = rawImages.filter((i) => i.timeslot !== "all");
+  const expandedFromAll = expandAllTimeslots(rawImages.filter((i) => i.timeslot === "all"));
+  const seenFilenames = new Set(nonAllImages.map((i) => i.filename));
+  const newFromAll = expandedFromAll.filter((i) => !seenFilenames.has(i.filename));
+  const merged = [...nonAllImages, ...newFromAll];
+
+  // Belt-and-suspenders dedup: ensure each (company, date, randomId) appears
+  // at most once per timeslot.
+  const dedupKey = (img: ParsedImage) =>
+    `${img.company}|${img.date}|${img.randomId}|${img.timeslot}`;
+  const seen = new Set<string>();
+  const images: ParsedImage[] = [];
+  for (const img of merged) {
+    const key = dedupKey(img);
+    if (seen.has(key)) {
+      console.log(`  Dedup: skipping duplicate ${img.filename}`);
+      continue;
+    }
+    seen.add(key);
+    images.push(img);
+  }
 
   const groups = groupByTimeslot(images);
   const companies = [...new Set(images.map((i) => i.company))];
