@@ -35,7 +35,7 @@ services:
       [
         "sh",
         "-c",
-        "rm -rf /app/dist/extensions && cd /app/skills/heritage-ads/scripts && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install 2>/dev/null; cd /app && exec node dist/index.js gateway --bind ${OPENCLAW_GATEWAY_BIND:-lan} --port 18789",
+        "cd /app/skills/heritage-ads/scripts && PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install 2>/dev/null; cd /app && exec node dist/index.js gateway --bind ${OPENCLAW_GATEWAY_BIND:-lan} --port 18789",
       ]
     healthcheck:
       test:
