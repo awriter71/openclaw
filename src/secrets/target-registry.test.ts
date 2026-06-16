@@ -1,3 +1,4 @@
+/** Tests secret target registry matching and docs coverage. */
 import { describe, expect, it } from "vitest";
 import type { OpenClawConfig } from "../config/config.js";
 import {
@@ -5,6 +6,7 @@ import {
   TALK_TEST_PROVIDER_API_KEY_PATH,
   TALK_TEST_PROVIDER_ID,
 } from "../test-utils/talk-test-provider.js";
+import { getCoreSecretTargetRegistry } from "./target-registry-data.js";
 import {
   discoverConfigSecretTargetsByIds,
   resolveConfigSecretTargetByPath,
@@ -32,14 +34,71 @@ describe("secret target registry", () => {
   it("resolves config targets by exact path including sibling ref metadata", () => {
     const target = resolveConfigSecretTargetByPath(["channels", "googlechat", "serviceAccount"]);
 
-    expect(target).not.toBeNull();
     expect(target?.entry?.id).toBe("channels.googlechat.serviceAccount");
     expect(target?.refPathSegments).toEqual(["channels", "googlechat", "serviceAccountRef"]);
+  });
+
+  it("resolves talk realtime provider api key targets", () => {
+    const target = resolveConfigSecretTargetByPath([
+      "talk",
+      "realtime",
+      "providers",
+      "openai",
+      "apiKey",
+    ]);
+
+    expect(target?.entry?.id).toBe("talk.realtime.providers.*.apiKey");
+    expect(target?.providerId).toBe("openai");
   });
 
   it("returns null when no config target path matches", () => {
     const target = resolveConfigSecretTargetByPath(["gateway", "auth", "mode"]);
 
     expect(target).toBeNull();
+  });
+
+  it("derives bundled web provider api key target paths from plugin manifests", () => {
+    const coreTargetIds = new Set(getCoreSecretTargetRegistry().map((entry) => entry.id));
+    expect(coreTargetIds.has("plugins.entries.exa.config.webSearch.apiKey")).toBe(false);
+    expect(coreTargetIds.has("plugins.entries.firecrawl.config.webFetch.apiKey")).toBe(false);
+
+    const target = resolveConfigSecretTargetByPath([
+      "plugins",
+      "entries",
+      "exa",
+      "config",
+      "webSearch",
+      "apiKey",
+    ]);
+
+    expect(target?.entry?.id).toBe("plugins.entries.exa.config.webSearch.apiKey");
+
+    const fetchTarget = resolveConfigSecretTargetByPath([
+      "plugins",
+      "entries",
+      "firecrawl",
+      "config",
+      "webFetch",
+      "apiKey",
+    ]);
+    expect(fetchTarget?.entry?.id).toBe("plugins.entries.firecrawl.config.webFetch.apiKey");
+  });
+
+  it("derives bundled plugin SecretInput contract target paths from plugin manifests", () => {
+    const coreTargetIds = new Set(getCoreSecretTargetRegistry().map((entry) => entry.id));
+    expect(coreTargetIds.has("plugins.entries.voice-call.config.twilio.authToken")).toBe(false);
+
+    const target = resolveConfigSecretTargetByPath([
+      "plugins",
+      "entries",
+      "voice-call",
+      "config",
+      "tts",
+      "providers",
+      "elevenlabs",
+      "apiKey",
+    ]);
+
+    expect(target?.entry?.id).toBe("plugins.entries.voice-call.config.tts.providers.*.apiKey");
   });
 });
